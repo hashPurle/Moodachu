@@ -6,13 +6,16 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "nlp-server": "node ../nlp_demo/server.js",
     "lint": "eslint .",
     "preview": "vite preview"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.4.1",
+    "body-parser": "^1.20.3",
     "clsx": "^2.1.1",
+    "express": "^4.21.2",
     "firebase": "^12.6.0",
     "framer-motion": "^12.23.24",
     "lucide-react": "^0.555.0",

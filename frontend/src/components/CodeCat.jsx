@@ -12,6 +12,10 @@ const MOOD_CONFIG = {
 };
 
 export default function CodeCat({ petState = 0, triggerAction, ...props }) {
+  useEffect(() => {
+    console.debug('[CodeCat] mounted petState=', petState);
+    return () => console.debug('[CodeCat] unmounted');
+  }, [petState]);
   const group = useRef();
   
   const headRef = useRef();
@@ -45,6 +49,15 @@ export default function CodeCat({ petState = 0, triggerAction, ...props }) {
 
     return () => clearTimeout(timeout);
   }, [triggerAction]);
+
+  // Ensure root group has a sensible scale and position at mount
+  useEffect(() => {
+    if (group.current) {
+      group.current.scale.set(1, 1, 1);
+      group.current.position.set(0, 0, 0);
+      console.debug('[CodeCat] group initial position', group.current.position, 'scale', group.current.scale);
+    }
+  }, []);
 
   // INTERNAL ACTION HELPER (used by pointer handlers / pinch)
   const applyLocalAction = (actionName) => {
@@ -95,6 +108,27 @@ export default function CodeCat({ petState = 0, triggerAction, ...props }) {
     if (currentAction === 'SCRATCH') {
       if (group.current) group.current.rotation.z = Math.sin(t * 20) * 0.1;
       if (group.current) group.current.position.x = Math.sin(t * 10) * 0.5;
+    }
+  });
+
+  // Debug: periodically print group world position & presence
+  const lastLogRef = useRef(0);
+  useFrame((state, delta) => {
+    if (!group.current) return;
+    // always ensure visible
+    group.current.visible = true;
+    const now = state.clock.getElapsedTime();
+    if (now - lastLogRef.current > 2.0) {
+      lastLogRef.current = now;
+      // world position
+      const worldPos = new THREE.Vector3();
+      group.current.getWorldPosition(worldPos);
+      const worldScale = new THREE.Vector3();
+      group.current.getWorldScale(worldScale);
+      const childrenCount = group.current.children.length;
+      console.debug('[CodeCat debug] worldPos', worldPos.toArray(), 'scale', worldScale.toArray(), 'children', childrenCount);
+      // if no children exist, print warning
+      if (childrenCount === 0) console.warn('[CodeCat] no children found in group');
     }
   });
 
@@ -227,15 +261,24 @@ export default function CodeCat({ petState = 0, triggerAction, ...props }) {
   }, []);
 
   const color = MOOD_CONFIG[petState].color;
-  const materialProps = { color: color, roughness: 0.6, metalness: 0.1 };
+  const materialProps = { color: color, roughness: 0.6, metalness: 0.1, emissive: color, emissiveIntensity: 0.06 };
   const blackMat = { color: "black", roughness: 0.2, metalness: 0.5 };
+
+  // const axes helper removed (debug)
 
   return (
     // ✅ No Position Offset here, let Stage handle it
-    <group ref={group} {...props} dispose={null}>
+    <group ref={group} position={[0,0,0]} visible={true} {...props} dispose={null}>
+      {/* DEBUG: a small mesh at origin to ensure the scene and camera render things */}
+      <mesh position={[0, 0.4, 0]}>
+        <sphereGeometry args={[0.08, 8, 8]} />
+        <meshStandardMaterial color="magenta" metalness={0.1} roughness={0.2} emissive={'magenta'} emissiveIntensity={3} />
+      </mesh>
+      {/* camera-facing cube removed (debug) */}
       
       <group ref={bodyRef}>
-          <RoundedBox args={[1, 1, 1.5]} radius={0.15} smoothness={4} position={[0, 0.5, 0]} 
+          <RoundedBox frustumCulled={false} args={[1, 1, 1.5]} radius={0.15} smoothness={4} position={[0, 0.5, 0]} 
+            castShadow receiveShadow
                onPointerDown={(e) => {
                  e.stopPropagation();
                  applyLocalAction('SMILE');
@@ -260,7 +303,7 @@ export default function CodeCat({ petState = 0, triggerAction, ...props }) {
              applyLocalAction('JUMP');
            }}
       >
-            <RoundedBox args={[0.9, 0.8, 0.7]} radius={0.2} smoothness={4}>
+            <RoundedBox frustumCulled={false} args={[0.9, 0.8, 0.7]} radius={0.2} smoothness={4} castShadow receiveShadow>
               <meshStandardMaterial {...materialProps} />
           </RoundedBox>
           {/* Ears */}
@@ -302,6 +345,7 @@ export default function CodeCat({ petState = 0, triggerAction, ...props }) {
               <meshStandardMaterial {...materialProps} />
           </RoundedBox>
       </group>
+      {/* Debug HTML overlay removed */}
 
     </group>
   );

@@ -28,8 +28,9 @@ const INTERACTION_TYPES = {
 };
 
 // Export for use in Frontend and NLP modules
-module.exports = {
-    EMOTION_TAGS,
-    PET_STATES,
-    INTERACTION_TYPES
-};
+export { EMOTION_TAGS, PET_STATES, INTERACTION_TYPES };
+
+// Backwards compatible CommonJS export
+if (typeof module !== 'undefined') {
+    module.exports = { EMOTION_TAGS, PET_STATES, INTERACTION_TYPES };
+}

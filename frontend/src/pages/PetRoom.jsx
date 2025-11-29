@@ -10,11 +10,13 @@ import { motion } from 'framer-motion';
 // 3D Imports
 import { Canvas } from "@react-three/fiber";
 import { PET_STATES } from '../utils/constants';
+import { getEmotionID } from '../utils/emotionMap';
 import { OrbitControls, Stage, Environment } from "@react-three/drei";
 
 // ✅ FIX: Commented out RealCat, using CodeCat instead
 // import RealCat from "../components/RealCat";
 import CodeCat from "../components/CodeCat"; 
+import RealCat from "../components/RealCat"; // import for debug toggle
 
 export default function PetRoom() {
   const { id } = useParams();
@@ -24,9 +26,12 @@ export default function PetRoom() {
   const relationship = relationships.find(r => r.id === id);
   const [input, setInput] = useState("");
   const [isEncrypting, setIsEncrypting] = useState(false);
+  const [detectedMoodLabel, setDetectedMoodLabel] = useState(null);
+  const [detectedEmotionRaw, setDetectedEmotionRaw] = useState(null);
 
   // 1. STATE FOR PROCEDURAL ACTIONS
   const [currentAction, setCurrentAction] = useState(null);
+  const [useRealModel, setUseRealModel] = useState(false);
 
   useEffect(() => {
     if (!relationship) navigate("/dashboard");
@@ -34,14 +39,51 @@ export default function PetRoom() {
 
   if (!relationship) return null;
 
+  // Debug: print selected relationship state on each render to validate updates
+  console.debug('[PetRoom] relationship', relationship?.id, 'petState=', relationship?.petState);
+
   const detectMoodFromInput = (text) => {
     if (!text) return null;
-    const t = text.toLowerCase();
-    if (/(angry|mad|furious|irritat|pissed|annoyed)/.test(t)) return 3; // STORM
-    if (/(happy|joy|lov|glad|cheer|smile)/.test(t)) return 1; // DANCE
-    if (/(tired|sleepy|exhaust|rest)/.test(t)) return 2; // SLEEPY
-    if (/(grow|better|improve|thrive)/.test(t)) return 4; // GROW
-    return 0; // NEUTRAL
+    // Use the NLP mapping to convert text -> Emotion ID
+    const emotionId = getEmotionID(text);
+    // set the raw emotion tag label for debugging
+    const EMOTION_NAMES = ['HAPPY','STRESSED','TIRED','NEED_SPACE','NEED_AFFECTION','NEGLECTED','NEUTRAL'];
+    setDetectedEmotionRaw(EMOTION_NAMES[emotionId] || null);
+    // Map emotionId to a readable pet label
+    const stateLabel = {
+      0: PET_STATES.DANCE, // yet mapping to pet states is handled below
+    };
+    console.debug('[PetRoom] detectMoodFromInput', { text, emotionId });
+    // Map the emotion id to a pet state to drive immediate frontend animation.
+    // This mapping mirrors the semantics used by the shared constants and frontend UI.
+    switch (emotionId) {
+      case 0: // HAPPY -> DANCE
+        return PET_STATES.DANCE;
+      case 1: // STRESSED -> STORM (local representation; actual circuit uses ZK)
+        return PET_STATES.STORM;
+      case 2: // TIRED -> SLEEPY
+        return PET_STATES.SLEEPY;
+      case 3: // NEED_SPACE -> SLEEPY (low energy / space)
+        return PET_STATES.SLEEPY;
+      case 4: // NEED_AFFECTION -> GROW
+        return PET_STATES.GROW;
+      case 5: // NEGLECTED -> STORM
+        return PET_STATES.STORM;
+      case 6: // NEUTRAL
+      default:
+        return PET_STATES.NEUTRAL;
+    }
+  };
+
+  // Helper: map pet state to text labels used in UI
+  const PET_STATE_LABELS = ['Neutral','Happy','Sleepy','Storm','Grow'];
+
+  // Update detected mood label on input change
+  const onInputChange = (value) => {
+    setInput(value);
+    const mapped = detectMoodFromInput(value);
+    setDetectedMoodLabel(mapped !== null && mapped !== undefined ? PET_STATE_LABELS[mapped] : null);
+    setDetectedEmotionRaw(null);
   };
 
   const handleVent = async () => {
@@ -51,7 +93,13 @@ export default function PetRoom() {
     // If the user typed a clear mood, set it explicitly; otherwise simulate random interaction
     const mood = detectMoodFromInput(input);
     if (mood !== null) {
+      console.debug('[PetRoom] handleVent -> setMood', { id: relationship.id, mood });
       setMood(relationship.id, mood);
+      // Log updated relationship (read from store)
+      setTimeout(() => {
+        const updatedRel = relationships.find(r => r.id === relationship.id);
+        console.debug('[PetRoom] relationship after setMood', updatedRel);
+      }, 50);
     } else {
       simulatePartnerInteraction(relationship.id);
     }
@@ -78,10 +126,12 @@ export default function PetRoom() {
       {isEncrypting && <PrivacyLoader />}
 
       <motion.nav initial={{ y: -8, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.45 }} className="p-6 flex items-center justify-between z-20 relative pointer-events-none">
-        <div className="pointer-events-auto">
+        <div className="pointer-events-auto flex items-center gap-2">
             <button onClick={() => navigate("/dashboard")} className="p-2 bg-slate-900/50 hover:bg-slate-800 rounded-full transition-colors border border-slate-800">
             <ArrowLeft className="text-slate-400" size={20} />
             </button>
+          {/* Debug toggle for 3D model type */}
+          <button onClick={() => setUseRealModel(m => !m)} className="p-2 bg-slate-800/60 rounded-md text-xs ml-2 pointer-events-auto">{useRealModel ? 'RealCat' : 'CodeCat'}</button>
         </div>
         <div className="text-center">
           <h1 className="font-bold text-xl tracking-tight drop-shadow-md">{relationship.petName}</h1>
@@ -126,11 +176,12 @@ export default function PetRoom() {
              {/* Weather VFX - rain, lightning, sparkles */}
              <WeatherVFX petState={relationship.petState} />
 
-             {/* Using CodeCat component */}
-             <CodeCat 
-               petState={relationship.petState} 
-               triggerAction={currentAction}
-             />
+             {/* Using CodeCat component - optionally switch to RealCat during debugging */}
+             {useRealModel ? (
+               <RealCat petState={relationship.petState} />
+             ) : (
+               <CodeCat petState={relationship.petState} triggerAction={currentAction} />
+             )}
            </group>
            
            <OrbitControls makeDefault enableZoom={true} minDistance={2} maxDistance={10} />
@@ -149,7 +200,7 @@ export default function PetRoom() {
             {/* ACTION BAR */}
             <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.45, delay: 0.05 }} className="pointer-events-auto flex items-center gap-3 p-3 bg-slate-900/80 rounded-2xl backdrop-blur-xl border border-slate-700 shadow-2xl mb-6 scale-90 md:scale-100 transition-transform">
                  
-                 <button onClick={() => trigger('SMILE')} className="p-4 bg-slate-800 hover:bg-emerald-500 hover:text-white text-emerald-500 rounded-xl transition-all active:scale-90 group relative" title="Smile">
+                <button onClick={() => trigger('SMILE')} className="p-4 bg-slate-800 hover:bg-emerald-500 hover:text-white text-emerald-500 rounded-xl transition-all active:scale-90 group relative" title="Smile">
                     <HandHeart size={24} />
                 </button>
 
@@ -170,14 +221,15 @@ export default function PetRoom() {
                 <button onClick={() => setMood(relationship.id, 1)} className="p-2 ml-2 bg-emerald-500/80 hover:bg-emerald-400 rounded-full text-white text-xs">Set Happy</button>
                 <button onClick={() => setMood(relationship.id, 2)} className="p-2 ml-2 bg-blue-500/80 hover:bg-blue-400 rounded-full text-white text-xs">Set Sleepy</button>
                 <button onClick={() => setMood(relationship.id, 4)} className="p-2 ml-2 bg-amber-500/80 hover:bg-amber-400 rounded-full text-white text-xs">Set Grow</button>
+                <button onClick={() => setMood(relationship.id, 0)} className="p-2 ml-2 bg-slate-700/60 hover:bg-slate-600 rounded-full text-white text-xs">Set Neutral</button>
             </motion.div>
 
             {/* Input Area */}
             <motion.div initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.5, delay: 0.1 }} className="pointer-events-auto w-full max-w-lg">
                 <div className="bg-slate-900/90 backdrop-blur-xl p-2 rounded-[2rem] border border-slate-700 shadow-2xl">
-                   <textarea
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
+                  <textarea
+                          value={input}
+                          onChange={(e) => onInputChange(e.target.value)}
                     placeholder={`How do you feel about ${relationship.partnerName}?`}
                     className="w-full bg-transparent text-white resize-none outline-none h-12 p-4 placeholder-slate-400 text-sm"
                   />
@@ -185,6 +237,10 @@ export default function PetRoom() {
                     <span className="text-[10px] text-slate-500 font-mono flex items-center gap-2">
                       <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"/> ZK-Encrypted
                     </span>
+                    <div className="flex items-center gap-3">
+                      {detectedMoodLabel && (
+                        <div className="text-[10px] font-mono text-slate-300/80 mr-2">Detected: <span className="font-bold">{detectedMoodLabel}</span>{detectedEmotionRaw ? ` (${detectedEmotionRaw})` : ''}</div>
+                      )}
                     <button
                       onClick={handleVent}
                       disabled={!input}
@@ -192,6 +248,7 @@ export default function PetRoom() {
                     >
                       Send Signal
                     </button>
+                    </div>
                   </div>
                 </div>
             </motion.div>
