@@ -3,12 +3,14 @@ import { useState, useEffect } from "react";
 import { useAppStore } from "../store/useAppStore";
 import PrivacyLoader from "../components/PrivacyLoader";
 import { ArrowLeft, Cookie, HandHeart, ArrowUp, Zap, MessageCircleWarning } from "lucide-react"; 
-// ^ Added some new icons for the new actions
 
 // 3D Imports
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, Stage, Environment } from "@react-three/drei";
-import RealCat from "../components/RealCat";
+
+// ✅ FIX: Commented out RealCat, using CodeCat instead
+// import RealCat from "../components/RealCat";
+import CodeCat from "../components/CodeCat"; 
 
 export default function PetRoom() {
   const { id } = useParams();
@@ -19,7 +21,7 @@ export default function PetRoom() {
   const [input, setInput] = useState("");
   const [isEncrypting, setIsEncrypting] = useState(false);
 
-  // 1. STATE FOR PROCEDURAL ACTIONS (The Trigger)
+  // 1. STATE FOR PROCEDURAL ACTIONS
   const [currentAction, setCurrentAction] = useState(null);
 
   useEffect(() => {
@@ -37,15 +39,11 @@ export default function PetRoom() {
     setIsEncrypting(false);
   };
 
-  // 2. HELPER TO TRIGGER ACTIONS
+  // 2. TRIGGER HELPER
   const trigger = (actionName) => {
-    // If already doing something, don't interrupt (optional)
     if (currentAction) return;
-
     console.log("Triggering:", actionName);
     setCurrentAction(actionName);
-
-    // Reset after 2 seconds so it can be triggered again
     setTimeout(() => {
       setCurrentAction(null);
     }, 2000);
@@ -54,12 +52,10 @@ export default function PetRoom() {
   return (
     <div className="h-screen w-screen flex flex-col bg-slate-950 text-white relative overflow-hidden">
       
-      {/* Background Gradient */}
       <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_40%,_#1e293b_0%,_#020617_80%)] -z-20" />
       
       {isEncrypting && <PrivacyLoader />}
 
-      {/* Navigation */}
       <nav className="p-6 flex items-center justify-between z-10 relative pointer-events-none">
         <div className="pointer-events-auto">
             <button onClick={() => navigate("/dashboard")} className="p-2 bg-slate-900/50 hover:bg-slate-800 rounded-full transition-colors border border-slate-800">
@@ -73,55 +69,44 @@ export default function PetRoom() {
         <div className="w-10" />
       </nav>
 
-      {/* --- 3D SCENE AREA --- */}
+      {/* --- 3D SCENE --- */}
       <div className="absolute inset-0 z-0">
         <Canvas shadows camera={{ position: [0, 0, 8], fov: 45 }}>
            <ambientLight intensity={1} />
            <Environment preset="city" />
            
-           {/* Auto-Zoom to fit screen */}
            <Stage environment="city" intensity={0.5} contactShadow={false} adjustCamera={1.2}>
-             
-             {/* ✅ PASS THE TRIGGER ACTION TO THE CAT */}
-             <RealCat 
+             {/* ✅ Using CodeCat Component */}
+             <CodeCat 
                petState={relationship.petState} 
                triggerAction={currentAction}
              />
-
            </Stage>
            
            <OrbitControls makeDefault enableZoom={true} minDistance={2} maxDistance={10} />
         </Canvas>
       </div>
 
-      {/* --- INTERACTION UI OVERLAY --- */}
+      {/* --- UI OVERLAY --- */}
       <div className="absolute bottom-0 left-0 w-full flex flex-col items-center pointer-events-none z-10 pb-10 px-4">
             
-            {/* ACTION BAR (Buttons) */}
+            {/* ACTION BAR */}
             <div className="pointer-events-auto flex items-center gap-3 p-3 bg-slate-900/80 rounded-2xl backdrop-blur-xl border border-slate-700 shadow-2xl mb-6 scale-90 md:scale-100 transition-transform">
                  
-                 {/* Smile / Pet */}
                  <button onClick={() => trigger('SMILE')} className="p-4 bg-slate-800 hover:bg-emerald-500 hover:text-white text-emerald-500 rounded-xl transition-all active:scale-90 group relative" title="Smile">
                     <HandHeart size={24} />
-                    <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-black text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">Pet</span>
                 </button>
 
-                {/* Jump */}
                  <button onClick={() => trigger('JUMP')} className="p-4 bg-slate-800 hover:bg-blue-500 hover:text-white text-blue-500 rounded-xl transition-all active:scale-90 group relative" title="Jump">
                     <ArrowUp size={24} />
-                    <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-black text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">Jump</span>
                 </button>
 
-                {/* Scratch */}
                 <button onClick={() => trigger('SCRATCH')} className="p-4 bg-slate-800 hover:bg-amber-500 hover:text-white text-amber-500 rounded-xl transition-all active:scale-90 group relative" title="Scratch">
                     <Zap size={24} />
-                    <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-black text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">Scratch</span>
                 </button>
 
-                {/* Scream */}
                 <button onClick={() => trigger('SCREAM')} className="p-4 bg-slate-800 hover:bg-red-500 hover:text-white text-red-500 rounded-xl transition-all active:scale-90 group relative" title="Scream">
                     <MessageCircleWarning size={24} />
-                    <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-black text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">Scream</span>
                 </button>
 
             </div>
