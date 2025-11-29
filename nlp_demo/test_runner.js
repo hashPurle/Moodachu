@@ -5,7 +5,7 @@ const testCases = [
     "I am so happy today!",
     "Work is making me stressed.",
     "I feel totally exhausted...",
-    "I want more space from you.",
+    "I expect more Warmth from you.",
     "I miss you so much",
     "I feel ignored lately",
     "I ate a sandwich", // Should be Neutral
