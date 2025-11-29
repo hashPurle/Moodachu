@@ -85,6 +85,12 @@ export const useAppStore = create((set, get) => ({
     set((state) => ({
       relationships: state.relationships.map(r => r.id === id ? { ...r, petState: Math.floor(Math.random() * 5) } : r)
     })),
+  
+  // Set explicit mood (useful when parsing messages or reacting to events)
+  setMood: (id, mood) =>
+    set((state) => ({
+      relationships: state.relationships.map(r => r.id === id ? { ...r, petState: mood } : r)
+    })),
 
   interactWithPet: (id, type) => {
     const currentPet = get().relationships.find(r => r.id === id);

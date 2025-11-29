@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useAppStore } from "../store/useAppStore";
 import PrivacyLoader from "../components/PrivacyLoader";
 import { ArrowLeft, Cookie, HandHeart, ArrowUp, Zap, MessageCircleWarning } from "lucide-react"; 
+import MoodBackground from "../components/MoodBackground";
 
 // 3D Imports
 import { Canvas } from "@react-three/fiber";
@@ -15,7 +16,7 @@ import CodeCat from "../components/CodeCat";
 export default function PetRoom() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { relationships, simulatePartnerInteraction } = useAppStore();
+  const { relationships, simulatePartnerInteraction, setMood } = useAppStore();
   
   const relationship = relationships.find(r => r.id === id);
   const [input, setInput] = useState("");
@@ -30,11 +31,27 @@ export default function PetRoom() {
 
   if (!relationship) return null;
 
+  const detectMoodFromInput = (text) => {
+    if (!text) return null;
+    const t = text.toLowerCase();
+    if (/(angry|mad|furious|irritat|pissed|annoyed)/.test(t)) return 3; // STORM
+    if (/(happy|joy|lov|glad|cheer|smile)/.test(t)) return 1; // DANCE
+    if (/(tired|sleepy|exhaust|rest)/.test(t)) return 2; // SLEEPY
+    if (/(grow|better|improve|thrive)/.test(t)) return 4; // GROW
+    return 0; // NEUTRAL
+  };
+
   const handleVent = async () => {
     if (!input) return;
     setIsEncrypting(true);
     await new Promise(r => setTimeout(r, 2000));
-    simulatePartnerInteraction(relationship.id);
+    // If the user typed a clear mood, set it explicitly; otherwise simulate random interaction
+    const mood = detectMoodFromInput(input);
+    if (mood !== null) {
+      setMood(relationship.id, mood);
+    } else {
+      simulatePartnerInteraction(relationship.id);
+    }
     setInput("");
     setIsEncrypting(false);
   };
@@ -52,7 +69,8 @@ export default function PetRoom() {
   return (
     <div className="h-screen w-screen flex flex-col bg-slate-950 text-white relative overflow-hidden">
       
-      <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_40%,_#1e293b_0%,_#020617_80%)] -z-20" />
+      {/* Mood background is dynamically controlled via petState */}
+      <MoodBackground petState={relationship.petState} />
       
       {isEncrypting && <PrivacyLoader />}
 
@@ -109,6 +127,11 @@ export default function PetRoom() {
                     <MessageCircleWarning size={24} />
                 </button>
 
+                {/* Quick mood toggle buttons - sets mood explicitly for both partners */}
+                <button onClick={() => setMood(relationship.id, 3)} className="p-2 ml-2 bg-red-700/70 hover:bg-red-600 rounded-full text-white text-xs">Set Angry</button>
+                <button onClick={() => setMood(relationship.id, 1)} className="p-2 ml-2 bg-emerald-500/80 hover:bg-emerald-400 rounded-full text-white text-xs">Set Happy</button>
+                <button onClick={() => setMood(relationship.id, 2)} className="p-2 ml-2 bg-blue-500/80 hover:bg-blue-400 rounded-full text-white text-xs">Set Sleepy</button>
+                <button onClick={() => setMood(relationship.id, 4)} className="p-2 ml-2 bg-amber-500/80 hover:bg-amber-400 rounded-full text-white text-xs">Set Grow</button>
             </div>
 
             {/* Input Area */}
