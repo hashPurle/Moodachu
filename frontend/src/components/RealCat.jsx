@@ -70,33 +70,90 @@ export default function RealCat({ petState = 0, ...props }) {
     }
   });
 
-  // 4. INTERACTION (Jump)
+  // 4. INTERACTION (Jump & head detection)
   const handleClick = (e) => {
     e.stopPropagation();
     if (isJumping || !actions) return;
+
+    // If the clicked object is the head (name contains 'Head' or 'head'), prioritize jump animation
+    const clickedName = e.object?.name || '';
+    const isHead = /head/i.test(clickedName);
     setIsJumping(true);
 
     const firstAnimName = Object.keys(actions)[0];
     const jumpAnim = actions['Jump'] || actions['Walk'] || actions[firstAnimName]; 
     const idleAnim = actions['Idle'] || actions[firstAnimName];
 
-    if (jumpAnim && jumpAnim !== idleAnim) {
+    const playAction = (anim) => {
+      if (!anim || anim === idleAnim) return;
       idleAnim.fadeOut(0.2);
-      jumpAnim.reset().fadeIn(0.2).play();
-      jumpAnim.setLoop(THREE.LoopOnce);
-      jumpAnim.clampWhenFinished = true;
+      anim.reset().fadeIn(0.2).play();
+      anim.setLoop(THREE.LoopOnce);
+      anim.clampWhenFinished = true;
 
-      jumpAnim.getMixer().addEventListener('finished', (e) => {
-        if (e.action === jumpAnim) {
-          jumpAnim.fadeOut(0.5);
+      anim.getMixer().addEventListener('finished', (evt) => {
+        if (evt.action === anim) {
+          anim.fadeOut(0.5);
           idleAnim.reset().fadeIn(0.5).play();
           setIsJumping(false);
         }
       });
-    } else {
-      setIsJumping(false);
+    };
+
+    if (isHead) {
+      playAction(jumpAnim);
+      return;
     }
+
+    // Otherwise, play a random reaction (try 'Happy' or the available action set)
+    const preferred = ['Happy', 'Purr', 'Jump', 'Walk'];
+    let picked = null;
+    for (const name of preferred) {
+      if (actions[name]) { picked = actions[name]; break; }
+    }
+    if (!picked) picked = actions[firstAnimName];
+    playAction(picked);
   };
+
+  // (Bonus) pinch detection for RealCat to make it SCRATCH or zoom toward camera (similar to CodeCat)
+  useEffect(() => {
+    let pinchStartDist = null;
+    let pinchTriggeredLocal = false;
+    const getDist = (t0, t1) => Math.hypot(t0.clientX - t1.clientX, t0.clientY - t1.clientY);
+    const onTouchStart = (ev) => {
+      if (ev.touches.length >= 2) { pinchStartDist = getDist(ev.touches[0], ev.touches[1]); pinchTriggeredLocal = false; }
+    };
+    const onTouchMove = (ev) => {
+      if (ev.touches.length >= 2 && pinchStartDist && !pinchTriggeredLocal) {
+        const d = getDist(ev.touches[0], ev.touches[1]);
+        if (d < pinchStartDist * 0.75) {
+          pinchTriggeredLocal = true;
+          // Similar to CodeCat, trigger a SCRATCH animation if available
+          const scratchAnim = actions['Scratch'] || actions['Scratching'] || actions['Purr'] || actions[firstAnimName];
+          if (scratchAnim) {
+            // play once
+            const idleAnim = actions['Idle'] || actions[firstAnimName];
+            idleAnim.fadeOut(0.2);
+            scratchAnim.reset().fadeIn(0.2).play();
+            scratchAnim.setLoop(THREE.LoopOnce);
+            scratchAnim.clampWhenFinished = true;
+            scratchAnim.getMixer().addEventListener('finished', (evt) => {
+              if (evt.action === scratchAnim) {
+                scratchAnim.fadeOut(0.5);
+                idleAnim.reset().fadeIn(0.5).play();
+                setIsJumping(false);
+              }
+            });
+          }
+        }
+      }
+    };
+    const onTouchEnd = (ev) => { if (ev.touches.length < 2) pinchStartDist = null; pinchTriggeredLocal = false; };
+    window.addEventListener('touchstart', onTouchStart, { passive: true });
+    window.addEventListener('touchmove', onTouchMove, { passive: true });
+    window.addEventListener('touchend', onTouchEnd, { passive: true });
+    return () => { window.removeEventListener('touchstart', onTouchStart); window.removeEventListener('touchmove', onTouchMove); window.removeEventListener('touchend', onTouchEnd); };
+  }, [actions]);
 
   return (
     <group ref={group} {...props} dispose={null} onClick={handleClick}>

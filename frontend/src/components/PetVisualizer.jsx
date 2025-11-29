@@ -11,6 +11,31 @@ const MOODS = {
 export default function PetVisualizer({ moodState, onStroke }) {
   const currentMood = MOODS[moodState] || MOODS[0];
 
+  // Facial expressions for each mood
+  const expressions = {
+    0: { // Neutral
+      eyes: <><div className="w-3 h-3 bg-slate-900 rounded-full opacity-80" /><div className="w-3 h-3 bg-slate-900 rounded-full opacity-80" /></>,
+      mouth: <div className="w-8 h-2 rounded-b-full bg-slate-700 mx-auto mt-2" />
+    },
+    1: { // Happy
+      eyes: <><div className="w-3 h-3 bg-slate-900 rounded-full opacity-80" /><div className="w-3 h-3 bg-slate-900 rounded-full opacity-80" /></>,
+      mouth: <div className="w-8 h-4 rounded-b-full bg-green-500 mx-auto mt-2" style={{ borderRadius: '0 0 20px 20px' }} />
+    },
+    2: { // Sleepy
+      eyes: <><div className="w-3 h-1 bg-slate-700 rounded-full opacity-60" /><div className="w-3 h-1 bg-slate-700 rounded-full opacity-60" /></>,
+      mouth: <div className="w-6 h-1 bg-slate-400 rounded-full mx-auto mt-2" />
+    },
+    3: { // Storm/Angry
+      eyes: <><div className="w-3 h-3 bg-red-700 rounded-full opacity-90" /><div className="w-3 h-3 bg-red-700 rounded-full opacity-90" /></>,
+      mouth: <div className="w-8 h-2 rounded-t-full bg-red-700 mx-auto mt-2" style={{ borderRadius: '20px 20px 0 0' }} />
+    },
+    4: { // Grow/Excited
+      eyes: <><div className="w-3 h-3 bg-yellow-500 rounded-full opacity-80" /><div className="w-3 h-3 bg-yellow-500 rounded-full opacity-80" /></>,
+      mouth: <div className="w-8 h-4 rounded-b-full bg-yellow-500 mx-auto mt-2" style={{ borderRadius: '0 0 20px 20px' }} />
+    },
+  };
+  const face = expressions[moodState] || expressions[0];
+
   return (
     <div className="relative flex items-center justify-center w-64 h-64 select-none">
       {/* Glow */}
@@ -41,10 +66,11 @@ export default function PetVisualizer({ moodState, onStroke }) {
         style={{ background: `radial-gradient(circle at 30% 30%, #ffffff, ${currentMood.color})` }}
       >
         {/* Eyes */}
-        <div className="flex gap-8 mb-2">
-            <motion.div className="w-3 h-3 bg-slate-900 rounded-full opacity-80" />
-            <motion.div className="w-3 h-3 bg-slate-900 rounded-full opacity-80" />
+        <div className="flex gap-8 mb-2 justify-center items-center">
+          {face.eyes}
         </div>
+        {/* Mouth */}
+        {face.mouth}
       </motion.div>
     </div>
   );
