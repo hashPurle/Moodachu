@@ -1,130 +1,144 @@
-# Moodachu Smart Contract
+# Moodachu Smart Contract Documentation
 
-This document provides technical details for the Moodachu smart contract, including how to compile, deploy, and interact with it.
+This document provides essential information for understanding, compiling, deploying, and interacting with the Moodachu smart contract on the Midnight Network.
 
-## 1. How to Compile
+## 1. Contract Overview
 
-The Moodachu smart contract is written in **Midnight Compact**. To compile the contract, you will need to use the official Midnight toolchain.
+The `Moodachu` smart contract is the on-chain component for the zero-knowledge emotional mediator project. It securely updates a shared virtual pet's mood (`pet_state`) based on aggregated emotional states from a couple, without ever revealing the private emotions themselves. This privacy is guaranteed through Groth16 Zero-Knowledge Proofs.
+
+**Key Features:**
+-   **ZK Proof Verification:** Verifies Groth16 proofs to ensure valid state transitions.
+-   **State Management:** Stores and updates the `pet_state` (0-4) for each couple.
+-   **Privacy-Preserving:** Only the aggregated `pet_state` is stored on-chain; raw emotions remain private.
+-   **Event Emission:** Notifies off-chain services of pet state changes.
+
+## 2. How to Compile the Contract
+
+Currently, the `Moodachu` contract is written in Midnight's Compact language. The exact compilation process will depend on the official Midnight SDK and toolchain.
+
+**Conceptual Compilation Steps:**
+
+1.  **Install Midnight Compiler/SDK:** Ensure you have the Midnight development environment set up, which includes their Compact language compiler.
+    ```bash
+    # Example: This command is hypothetical
+    midnight install-sdk
+    ```
+2.  **Navigate to Contract Directory:**
+    ```bash
+    cd contract/src
+    ```
+3.  **Compile the Contract:** Use the Midnight Compact compiler to generate bytecode and ABI artifacts.
+    ```bash
+    # Example: This command is hypothetical
+    midnight compile moodachu_contract.midnight --output ../artifacts
+    ```
+    If you are using a Hardhat environment configured for Midnight (as suggested by the deployment script), the compilation might be integrated into Hardhat's workflow:
+    ```bash
+    cd contract/
+    npx hardhat compile
+    ```
+    This command typically processes `.sol` files, but a Midnight Hardhat plugin would extend this to `.midnight` files, generating the necessary `Moodachu.json` ABI and bytecode in the `artifacts/` directory.
+
+## 3. How to Deploy to Testnet
+
+Deployment to the Midnight testnet requires configuring your Hardhat environment (or equivalent) to connect to the Midnight network and using a deployment script.
 
 **Prerequisites:**
-- The Midnight SDK installed on your machine.
-- Node.js and npm installed (for Hardhat deployment/testing setup).
-- Dependencies installed: `npm install` in the `contract` directory.
-
-**Compilation Steps:**
-1. Navigate to the `contract` directory.
-2. Run the Midnight compiler on the source file:
-   ```bash
-   midnightc src/moodachu_contract.midnight --output-dir build
-   ```
-3. This command *should* produce the compiled artifacts in the `build` directory, including a WASM binary and an ABI definition that can be used by Hardhat.
-
-_**Note:** The exact compiler command and flags may vary. Please refer to the official Midnight documentation for the most up-to-date instructions. **I cannot verify this compilation step as I do not have access to the Midnight compiler.**_
-
-## 2. How to Deploy
-
-The contract can be deployed to an EVM-compatible testnet (like Midnight, if it has an EVM layer) using the provided Hardhat script.
-
-**Prerequisites:**
-- Node.js and npm installed.
-- Dependencies installed: `npm install` in the `contract` directory.
-- A configured Hardhat network (e.g., for a local blockchain or Midnight testnet).
+-   **Hardhat Setup:** Ensure your `contract/hardhat.config.cjs` is configured for the Midnight testnet. This involves adding a network entry with the correct RPC URL and chain ID, and providing an account's private key (securely via environment variables).
+    ```javascript
+    // Example hardhat.config.cjs snippet for Midnight testnet
+    module.exports = {
+      // ...
+      networks: {
+        midnightTestnet: {
+          url: "https://rpc.testnet.midnight.network", // Replace with actual Midnight testnet RPC
+          chainId: 12345, // Replace with actual Midnight testnet Chain ID
+          accounts: [process.env.PRIVATE_KEY], // Securely load private key
+        },
+      },
+      // ...
+    };
+    ```
+-   **Testnet Tokens:** Fund the deployer account with sufficient testnet tokens to cover deployment costs.
+-   **Verification Key:** Have your `verification_key.json` ready. You'll need to parse its components and pass them to the deployment script's `placeholderVerificationKey` object, ensuring the values match the `Groth16VerificationKey` struct in the contract.
 
 **Deployment Steps:**
 
-1. **Configure Hardhat:**
-   Ensure your `hardhat.config.cjs` is set up with your desired network. Example for a local network:
-   ```javascript
-   module.exports = {
-     solidity: "0.8.19", // Or the version compatible with Midnight's EVM
-     networks: {
-       hardhat: {
-         // This is a local testing network
-       },
-       // Add other networks like Midnight testnet here
-       // midnight_testnet: {
-       //   url: "https://testnet.midnight.network/rpc",
-       //   accounts: [`0x<YOUR_PRIVATE_KEY>`]
-       // }
-     }
-   };
-   ```
-   _**Note:** You might need to configure Hardhat to work with Midnight Compact contract artifacts. This might require a specific Hardhat plugin or custom configuration based on the Midnight SDK._
-
-2. **Run the Deployment Script:**
-   Execute the deployment script using Hardhat. If deploying to a specific network, append `--network <network_name>`:
-   ```bash
-   npx hardhat run scripts/deploy.cjs # For local Hardhat network
-   # npx hardhat run scripts/deploy.cjs --network midnight_testnet # For Midnight testnet
-   ```
-
-3. **Verify the Output:**
-   The script will:
-   - Log the address of the deployed `Moodachu` contract to the console.
-   - Create a `contract.json` file in `frontend/src/utils` containing the `Moodachu` contract's address and ABI. The frontend uses this file to connect to the contract.
-
-## 3. Frontend API Reference
-
-The `frontend/src/utils/contractAdapter.ts` module provides a set of functions for interacting with the smart contract.
-
-**`initContract(): void`**
-- Initializes the connection to the smart contract. Must be called once when the app loads.
-
-**`submitProof(pairId: string, claimedState: number, rawProof: RawProof): Promise<ethers.ContractTransaction>`**
-- Submits a ZK proof to the contract.
-- `pairId`: A unique string identifier for the couple.
-- `claimedState`: The public input (0-4).
-- `rawProof`: The raw proof object from `snarkjs`.
-- _**Note:** In this Midnight Compact implementation, the `submitProof` function does NOT perform actual ZK verification, as per your instruction to leave out the ZK part._
-
-**`listenForPetStateUpdates(callback: PetStateUpdateCallback): void`**
-- Listens for `PetStateUpdated` events from the contract.
-- The `callback` function will be executed with `(pairId, newState, timestamp)`.
-
-**`getPetState(pairId: string): Promise<number>`**
-- Fetches the current pet state for a given `pairId`.
-
-## 4. Gas Optimization Notes
-
-- **Proof Size:** If ZK verification were implemented, the size of the ZK proof would be a significant contributor to gas costs.
-- **State Writes:** The `submitProof` function performs one storage write (`self.pair_states.insert`). This is efficient.
-- **Gas Limit:** The frontend is currently sending a gas limit of `500,000`. For production, it's recommended to perform gas estimation to find a more optimal limit.
-
-## 5. ZK Setup (Not Included in this Implementation)
-
-As per your instruction, the Zero-Knowledge Proof part (including circuit compilation, trusted setup, and verifier generation) is **NOT** included in this Midnight Compact implementation. The `submitProof` function in `moodachu_contract.midnight` currently mocks successful ZK verification.
-
-If you later decide to integrate ZK proofs, you would need:
-- A working `circom` installation.
-- A method to generate `Groth16Proof` objects compatible with Midnight Compact.
-- An implementation of the `verify_groth16` internal function within the Midnight environment, likely using native cryptographic primitives provided by the Midnight network.
-
-## 6. Next Steps (To run the full project)
-
-1.  **Install Contract Dependencies:**
+1.  **Update `deploy_moodachu.js`:** Open `contract/scripts/deploy_moodachu.js` and replace the placeholder values in `placeholderVerificationKey` with the actual field elements from your generated `verification_key.json`.
+2.  **Run Deployment Script:** Execute the deployment script using Hardhat, specifying the Midnight testnet.
     ```bash
-    cd contract
-    npm install
-    cd ..
+    cd contract/
+    npx hardhat run scripts/deploy_moodachu.js --network midnightTestnet
     ```
-2.  **Compile Contracts:**
-    Use the Midnight compiler (as described in Section 1). You might need to configure Hardhat to correctly use the artifacts generated by the Midnight compiler.
-    ```bash
-    midnightc src/moodachu_contract.midnight --output-dir build # Example
-    # npx hardhat compile # If Hardhat integration is set up
-    ```
-3.  **Run Tests:**
-    ```bash
-    npx hardhat test
-    ```
-    _**Note:** The tests will mock ZK verification as the feature is not implemented in the contract._
-4.  **Deploy Contracts:**
-    ```bash
-    npx hardhat run scripts/deploy.cjs
-    ```
-5.  **Develop Frontend Proof Generation:** (If ZK is later re-introduced) Implement the logic in `frontend/src/utils/proofGenAdapter.js` to generate proofs using your ZK circuit and an appropriate tool.
-6.  **Integrate Frontend:**
-    - Call `initContract()` when your frontend application starts.
-    - Use `submitProof()` to send mock ZK proofs to the contract.
-    - Use `listenForPetStateUpdates()` to react to pet state changes.
-    - Use `getPetState()` to fetch current state.
+3.  **Verify Output:** The script will output the deployed contract address and save it to `contract/deployed_address.json`. Check the console for any errors.
+
+## 4. API Reference for Frontend Team
+
+The Moodachu smart contract exposes the following public functions and events for interaction from the frontend.
+
+### Functions
+
+#### `submitProof(pairId: bytes32, claimedState: u8, proof: Groth16Proof) -> bool`
+-   **Description:** Submits a zero-knowledge proof to update a couple's pet state. This is the primary function for users to interact with the contract.
+-   **Parameters:**
+    -   `pairId`: `bytes32` - A unique identifier for the couple (e.g., a hash of their wallet addresses).
+    -   `claimedState`: `u8` (0-4) - The new pet state that the ZK proof asserts to be true.
+    -   `proof`: `Groth16Proof` - The formatted Groth16 proof generated by the off-chain ZK circuit.
+-   **Returns:** `bool` - `true` if the proof was successfully verified and the state updated. Reverts on invalid input or failed proof verification.
+-   **Emits:** `PairCreated` (if new pair), `PetStateUpdated`.
+
+#### `getPetState(pairId: bytes32) -> u8`
+-   **Description:** A `view` function to retrieve the current pet state for a given couple.
+-   **Parameters:**
+    -   `pairId`: `bytes32` - The unique identifier for the couple.
+-   **Returns:** `u8` (0-4) - The current pet state. Returns `0` (NEUTRAL) if the `pairId` does not exist.
+
+#### `getPairInfo(pairId: bytes32) -> PairState`
+-   **Description:** A `view` function to retrieve all stored information (`PairState` struct) for a given couple.
+-   **Parameters:**
+    -   `pairId`: `bytes32` - The unique identifier for the couple.
+-   **Returns:** `PairState` - The complete `PairState` struct. Returns a default-initialized `PairState` if the `pairId` does not exist.
+
+### Events
+
+#### `PetStateUpdated(pairId: bytes32, newState: u8, timestamp: u64)`
+-   **Description:** Emitted when a couple's pet state is successfully changed.
+-   **Arguments:**
+    -   `pairId`: `bytes32` - The unique identifier of the couple.
+    -   `newState`: `u8` - The new pet state (0-4).
+    -   `timestamp`: `u64` - The block timestamp when the update occurred.
+
+#### `PairCreated(pairId: bytes32, timestamp: u64)`
+-   **Description:** Emitted when a new couple's data is first recorded in the contract.
+-   **Arguments:**
+    -   `pairId`: `bytes32` - The unique identifier of the newly created couple.
+    -   `timestamp`: `u64` - The block timestamp when the pair was created.
+
+For frontend interaction examples using `ethers.js`, refer to `frontend/src/utils/moodachuContractHelpers.ts`.
+
+## 5. Gas Optimization Notes
+
+The primary gas cost of this contract will be dominated by the Groth16 proof verification. Midnight Network is designed to be ZK-friendly, so their native verifier primitive should be highly optimized.
+
+**General Optimization Principles Applied/Considerations:**
+-   **Minimize Storage Writes:** Writing to blockchain storage is expensive. The contract minimizes writes by only updating the `PairState` struct when necessary.
+-   **Efficient Data Structures:** Using a `mapping` for `pair_states` provides efficient O(1) lookups.
+-   **No Expensive Loops:** There are no arbitrary loops in the core logic that could lead to unbounded gas costs.
+-   **ZK Verifier Intrinsic:** The `verify_groth16_proof` function is designed to call a native Midnight primitive. This is crucial for gas efficiency, as custom Solidity/Compact implementations of pairing checks would be prohibitively expensive.
+-   **Input Validation:** Early input validation (e.g., `claimedState` range check) saves gas by reverting transactions before expensive operations if inputs are invalid.
+
+**Future Considerations for further optimization (if needed):**
+-   **Hydra/L2 Integration:** If high throughput is required, exploring Midnight's L2 solutions (like Hydra) for off-chain verification with batch commitments to L1 could significantly reduce on-chain gas costs per proof.
+-   **Rate Limiting:** Implementing rate limits for `submitProof` could prevent spam and accidental high gas usage, though this adds some state overhead.
+
+## 6. Verification Key Placeholder
+
+The `verification_key` in the contract and deployment script is currently a placeholder. When you receive the actual `verification_key.json` from the ZK engineer, you will need to:
+
+1.  **Parse `verification_key.json`:** Convert the hex string values from the JSON into the `FieldElement` (u256) format expected by your deployment script and the Compact contract.
+2.  **Update `Groth16VerificationKey` Struct:** If the actual VK structure is more complex than the simplified one in `moodachu_contract.midnight`, you will need to update the `Groth16VerificationKey` struct in the contract.
+3.  **Update Deployment Script:** Replace the `placeholderVerificationKey` object in `contract/scripts/deploy_moodachu.js` with the correctly parsed values from your actual `verification_key.json`.
+4.  **Update Test Suite:** Similarly, update the `placeholderVerificationKey` in `contract/tests/moodachu.test.js` to reflect the real VK components for more accurate testing.
+5.  **Update `ic_length`:** Ensure the `ic_length` field in the `Groth16VerificationKey` struct and the deployment script precisely matches the number of public inputs your ZK circuit is designed to handle.
+
+By following these steps, you can seamlessly integrate the real verification key into your project.

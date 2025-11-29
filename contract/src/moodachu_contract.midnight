@@ -68,11 +68,11 @@ contract Moodachu {
         // 1. Input Validation: Ensure claimedState is within the valid range (0-4).
         require(claimedState <= 4, "Invalid state: claimedState must be between 0 and 4.");
 
-        // 2. ZK Proof Verification (THIS IS A PLACEHOLDER)
-        // As per user's instruction, the ZK verification part is left out for now.
-        // In a real Midnight environment, this would involve calling a native cryptographic primitive.
-        let is_valid = true; // MOCK: Assume proof is always valid for now.
-        require(is_valid, "Proof verification failed."); // This will never be hit with is_valid = true
+        // 2. ZK Proof Verification
+        // The claimedState is the public input to the proof.
+        let public_inputs = [Field::from(claimedState)];
+        let is_valid = self.verify_groth16(self.verification_key, proof, public_inputs);
+        require(is_valid, "Proof verification failed.");
 
         // 3. State Update
         let current_timestamp = now();
@@ -123,5 +123,28 @@ contract Moodachu {
     // @return The PairState struct, or a default/empty struct if the pair does not exist.
     public view function getPairInfo(pairId: bytes32) -> Option<PairState> {
         return self.pair_states.get(pairId);
+    }
+
+    // --- Internal Functions ---
+
+    // Verifies a Groth16 proof.
+    //
+    // @param vk The verification key.
+    // @param proof The Groth16 proof.
+    // @param public_inputs The public inputs to the proof.
+    // @return A boolean indicating if the proof is valid.
+    //
+    // NOTE: This is a placeholder. It should be replaced with Midnight's
+    // native cryptographic primitive for Groth16 verification.
+    // The function signature might need to be adjusted accordingly.
+    private function verify_groth16(vk: bytes, proof: Groth16Proof, public_inputs: [Field]) -> bool {
+        // In a real implementation, you would use a precompiled contract
+        // or a built-in function provided by the Midnight network.
+        // For example:
+        return midnight::crypto::verify_groth16(vk, proof, public_inputs);
+
+        // For the hackathon, we'll assume the proof is always valid.
+        // **REPLACE THIS WITH ACTUAL VERIFICATION LOGIC.**
+        // return true;
     }
 }
