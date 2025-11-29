@@ -1,0 +1,13 @@
+TEST PLAN - NLP LOGIC
+---------------------
+
+INPUT TEXT                          | EXPECTED ID | CATEGORY
+------------------------------------|-------------|---------
+"I am so happy today!"              | 0           | HAPPY
+"Work is making me stressed"        | 1           | STRESSED
+"I feel totally exhausted"          | 2           | TIRED
+"I just need some space"            | 3           | NEED_SPACE
+"I miss you so much"                | 4           | NEED_AFFECTION
+"I feel ignored lately"             | 5           | NEGLECTED
+"I ate a sandwich" (Random text)    | 6           | NEUTRAL
+"Overwhelmed and tired"             | 1 or 2      | (First match wins)
