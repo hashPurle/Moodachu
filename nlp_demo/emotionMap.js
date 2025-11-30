@@ -26,6 +26,9 @@ const KEYWORD_DATABASE = {
     "cheerful": EMOTION_TAGS.HAPPY,
     "delighted": EMOTION_TAGS.HAPPY,
     "thrilled": EMOTION_TAGS.HAPPY,
+    "Awesome": EMOTION_TAGS.HAPPY,
+    "Surprised": EMOTION_TAGS.HAPPY,
+    "Delightful": EMOTION_TAGS.HAPPY,
 
     // STRESSED (1)
     "stressed": EMOTION_TAGS.STRESSED,
