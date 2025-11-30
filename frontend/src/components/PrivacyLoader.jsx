@@ -1,23 +1,68 @@
-import { motion } from "framer-motion";
-import { Lock } from "lucide-react";
+export default function PrivacyLoader({ petState }) {
+  const memeMap = {
+    0: ["/memes/neutral.gif"],
+    1: ["/memes/happy.gif"],
+    2: ["/memes/sleepy.gif"],
+    3: ["/memes/angry.gif"],
+    4: ["/memes/grow.gif"],
+  };
 
-export default function PrivacyLoader() {
+  const captions = {
+    0: "Processing neutral vibes...",
+    1: "Encrypting happy vibes 💚",
+    2: "Soft sleepy thoughts incoming...",
+    3: "Stormy emotions detected ⚡",
+    4: "Growing stronger together 🌱",
+  };
+
+  const meme = (memeMap[petState] || memeMap[0])[0];
+
   return (
-    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-slate-950/90 backdrop-blur-sm">
-      <motion.div
-        animate={{ rotate: 360 }}
-        transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-        className="relative p-6 bg-slate-900 rounded-full border border-slate-800"
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        backgroundColor: "rgba(0,0,0,0.6)",
+        zIndex: 999999,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <div
+        style={{
+          background: "#0f172a",
+          padding: "20px",
+          borderRadius: "20px",
+          border: "1px solid #334155",
+          boxShadow: "0 0 30px rgba(0,0,0,0.4)",
+          width: "300px",
+          textAlign: "center",
+        }}
       >
-        <Lock className="w-10 h-10 text-emerald-400" />
-      </motion.div>
-      <motion.p
-        animate={{ opacity: [0.5, 1, 0.5] }}
-        transition={{ duration: 1.5, repeat: Infinity }}
-        className="mt-8 text-lg font-mono text-emerald-400 tracking-widest"
-      >
-        ENCRYPTING FEELINGS...
-      </motion.p>
+        <img
+          src={meme}
+          alt="meme"
+          style={{
+            width: "100%",
+            height: "230px",
+            borderRadius: "12px",
+            objectFit: "cover",
+          }}
+        />
+
+        <p
+          style={{
+            marginTop: "12px",
+            color: "#10b981",
+            fontSize: "12px",
+            fontFamily: "monospace",
+            textAlign: "center",
+          }}
+        >
+          {captions[petState]}
+        </p>
+      </div>
     </div>
   );
 }

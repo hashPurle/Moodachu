@@ -1,0 +1,16 @@
+{
+  "pairs": {
+    "2": {
+      "id": "2",
+      "petState": 1,
+      "lastUpdate": 1764461627,
+      "updateCount": 12
+    },
+    "couple1": {
+      "id": "couple1",
+      "petState": 1,
+      "lastUpdate": 1764459847,
+      "updateCount": 2
+    }
+  }
+}
