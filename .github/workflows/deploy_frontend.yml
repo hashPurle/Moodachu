@@ -48,3 +48,41 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    # Only run this job if secrets are set (prevents failure on forks/initial setup)
+    if: ${{ secrets.PROD_HOST != '' }}
+    steps:
+      - name: Deploy to Server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: ${{ secrets.PROD_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            # Convert repo name to lowercase for Docker image reference
+            REPO_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+            IMAGE_TAG="ghcr.io/$REPO_LOWER/frontend:latest"
+            
+            echo "Deploying $IMAGE_TAG..."
+            
+            # Login to GHCR using the GitHub Token passed automatically
+            # Note: You might need to use a PAT if the default token permissions aren't enough, 
+            # but for public packages read is usually fine. For private, we pass the token.
+            echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            
+            # Pull the new image
+            docker pull $IMAGE_TAG
+            
+            # Stop and remove old container
+            docker stop moodachu-frontend || true
+            docker rm moodachu-frontend || true
+            
+            # Run the new container
+            docker run -d \
+              --name moodachu-frontend \
+              --restart unless-stopped \
+              -p 80:80 \
+              $IMAGE_TAG
