@@ -1,11 +1,13 @@
 import { useState, useEffect, useRef } from "react";
 import { useAppStore } from "../store/useAppStore";
 import { fetchUserByUsername } from '../utils/moodachuApi';
-import { Link } from "react-router-dom";
-import { Plus, User, ArrowRight, LogOut } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { Plus, User, ArrowRight, LogOut, Sparkles, Heart } from "lucide-react";
+import { motion } from "framer-motion";
 
 export default function Dashboard() {
   const { relationships, addRequest, acceptRequest, addInviteLocal, user, logout, lastEmailPreview, clearLastEmailPreview, fetchPairs } = useAppStore();
+  const navigate = useNavigate();
   const [isModalOpen, setModalOpen] = useState(false);
   const [newPartner, setNewPartner] = useState("");
   const [newPartnerUsername, setNewPartnerUsername] = useState("");
@@ -21,6 +23,11 @@ export default function Dashboard() {
     setModalOpen(false);
     setNewPartner(""); setNewPetName("");
     setNewPartnerUsername("");
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    navigate("/");
   };
 
   useEffect(() => {
@@ -52,85 +59,183 @@ export default function Dashboard() {
   }, [user?.username, addInviteLocal, fetchPairs]);
 
   return (
-    <div className="min-h-screen p-8 bg-slate-950 text-white relative">
-      {/* Header */}
-      <header className="flex justify-between items-center mb-12 max-w-5xl mx-auto">
-        <div>
-          <h2 className="text-2xl font-bold">Your Connections</h2>
-          <p className="text-slate-400 text-sm">Welcome back, {user?.displayName || user?.email || "User"} <span className="text-xs text-slate-500 ml-2">{user?.username ? `(${user.username})` : user?.email ? `(${user.email})` : ''}</span></p>
-        </div>
-        
-        <div className="flex gap-4">
-          <button onClick={() => setModalOpen(true)} className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-full font-bold transition-all shadow-lg shadow-emerald-500/20">
-            <Plus size={16} /> New Pet
-          </button>
-          <button onClick={logout} className="p-2 bg-slate-800 rounded-full hover:bg-red-500/20 hover:text-red-400 transition-colors" title="Logout">
-            <LogOut size={20} />
-          </button>
-        </div>
-      </header>
+    <div className="min-h-screen p-8 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white relative overflow-hidden">
+      {/* Animated Background Elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-20 -left-20 w-96 h-96 bg-emerald-500/5 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute bottom-20 -right-20 w-96 h-96 bg-purple-500/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+        <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-blue-500/3 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
+      </div>
 
-      {/* Grid of Pets */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
-        {relationships.map((rel) => (
-          <div key={rel.id} className="bg-slate-900/50 border border-slate-800 p-6 rounded-3xl hover:border-emerald-500/30 transition-all group backdrop-blur-sm">
-            
-            <div className="flex justify-between items-start mb-6">
-              <div>
-                <h3 className="text-2xl font-bold text-white group-hover:text-emerald-400 transition-colors">{rel.petName}</h3>
-                <div className="flex items-center gap-2 text-slate-400 text-xs font-mono mt-1">
-                  <User size={12} /> {rel.partnerName}
-                </div>
-                {(rel.partnerUsername || rel.partnerEmail) && (
-                  <div className="text-[12px] text-slate-500 mt-1 font-mono">{rel.partnerUsername || rel.partnerEmail}</div>
-                )}
-                {rel.status === 'error' && rel.error && (
-                  <div className="text-xs text-red-400 mt-2">{rel.error}</div>
-                )}
-              </div>
-                <div className="flex gap-2 items-center">
-                <div className={`px-2 py-1 rounded text-[10px] font-bold tracking-wider ${rel.status === 'active' ? 'bg-emerald-500/10 text-emerald-400' : (rel.status === 'error' ? 'bg-red-500/10 text-red-400' : 'bg-amber-500/10 text-amber-400')}`}>
-                  {rel.status === 'active' ? '● ONLINE' : (rel.status === 'error' ? 'ERROR' : '○ PENDING')}
-                </div>
-                {rel.shared && (
-                  <div className="px-2 py-1 rounded text-[9px] font-bold tracking-wider bg-slate-700/30 text-slate-300">Shared</div>
-                )}
-              </div>
+      <div className="relative z-10">
+        {/* Header */}
+        <motion.header 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="flex justify-between items-center mb-12 max-w-6xl mx-auto"
+        >
+          <div>
+            <div className="flex items-center gap-3 mb-2">
+              <Sparkles className="text-emerald-400" size={28} />
+              <h2 className="text-4xl font-bold bg-gradient-to-r from-white via-emerald-200 to-white bg-clip-text text-transparent">Your Connections</h2>
             </div>
-
-            {rel.status === 'active' ? (
-              <Link to={`/pet/${rel.id}`}>
-                <button className="w-full bg-slate-800 hover:bg-emerald-500 hover:text-slate-900 py-3 rounded-xl font-bold transition-all flex items-center justify-center gap-2 group-hover:shadow-lg">
-                  Enter Room <ArrowRight size={16} />
-                </button>
-              </Link>
-            ) : (
-              <button onClick={() => acceptRequest(rel.id)} className="w-full bg-slate-800 text-slate-400 hover:text-white py-3 rounded-xl font-bold border border-dashed border-slate-700 hover:border-white transition-all">
-                Accept Request
-              </button>
-            )}
+            <p className="text-slate-400 text-sm ml-11">Welcome back, <span className="text-emerald-400 font-semibold">{user?.displayName || user?.email || "User"}</span> <span className="text-xs text-slate-500 ml-2">{user?.username ? `@${user.username}` : user?.email ? `(${user.email})` : ''}</span></p>
           </div>
-        ))}
+          
+          <div className="flex gap-3">
+            <motion.button 
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setModalOpen(true)} 
+              className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white px-6 py-3 rounded-full font-bold transition-all shadow-xl shadow-emerald-500/30 hover:shadow-emerald-500/50"
+            >
+              <Plus size={18} /> New Pet
+            </motion.button>
+            <motion.button 
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={handleLogout} 
+              className="p-3 bg-slate-800/50 backdrop-blur rounded-full hover:bg-red-500/20 hover:text-red-400 transition-colors border border-slate-700/50" 
+              title="Logout"
+            >
+              <LogOut size={20} />
+            </motion.button>
+          </div>
+        </motion.header>
+
+        {/* Grid of Pets */}
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto"
+        >
+          {relationships.length === 0 ? (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="col-span-full flex flex-col items-center justify-center py-20"
+            >
+              <Heart className="text-slate-700 mb-4" size={64} />
+              <h3 className="text-2xl font-bold text-slate-600 mb-2">No connections yet</h3>
+              <p className="text-slate-500 mb-6">Create your first pet to get started!</p>
+              <button 
+                onClick={() => setModalOpen(true)}
+                className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-emerald-500 text-white px-6 py-3 rounded-full font-bold shadow-xl shadow-emerald-500/30"
+              >
+                <Plus size={18} /> Create Your First Pet
+              </button>
+            </motion.div>
+          ) : (
+            relationships.map((rel, index) => (
+              <motion.div 
+                key={rel.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: index * 0.1 }}
+                whileHover={{ y: -8, scale: 1.02 }}
+                className="relative bg-gradient-to-br from-slate-900/80 to-slate-800/50 border border-slate-700/50 p-6 rounded-3xl hover:border-emerald-500/50 transition-all group backdrop-blur-xl shadow-xl hover:shadow-2xl hover:shadow-emerald-500/10"
+              >
+                {/* Decorative gradient overlay */}
+                <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/0 to-emerald-500/0 group-hover:from-emerald-500/5 group-hover:to-purple-500/5 rounded-3xl transition-all duration-500" />
+                
+                <div className="relative z-10">
+                  <div className="flex justify-between items-start mb-6">
+                    <div>
+                      <h3 className="text-2xl font-bold text-white group-hover:text-emerald-400 transition-colors flex items-center gap-2">
+                        {rel.petName}
+                        {rel.status === 'active' && <span className="text-emerald-400">✨</span>}
+                      </h3>
+                      <div className="flex items-center gap-2 text-slate-400 text-sm mt-2">
+                        <div className="p-1.5 bg-slate-800/50 rounded-full">
+                          <User size={14} />
+                        </div>
+                        <span className="font-medium">{rel.partnerName}</span>
+                      </div>
+                      {(rel.partnerUsername || rel.partnerEmail) && (
+                        <div className="text-xs text-slate-500 mt-1 font-mono bg-slate-800/30 px-2 py-1 rounded-md inline-block">
+                          @{rel.partnerUsername || rel.partnerEmail}
+                        </div>
+                      )}
+                      {rel.status === 'error' && rel.error && (
+                        <div className="text-xs text-red-400 mt-2 bg-red-500/10 px-2 py-1 rounded-md">{rel.error}</div>
+                      )}
+                    </div>
+                    <div className="flex flex-col gap-2 items-end">
+                      <div className={`px-3 py-1.5 rounded-full text-[10px] font-bold tracking-wider flex items-center gap-1.5 ${rel.status === 'active' ? 'bg-emerald-500/20 text-emerald-400 shadow-lg shadow-emerald-500/20' : (rel.status === 'error' ? 'bg-red-500/20 text-red-400' : 'bg-amber-500/20 text-amber-400')}`}>
+                        <span className={`w-2 h-2 rounded-full ${rel.status === 'active' ? 'bg-emerald-400 animate-pulse' : (rel.status === 'error' ? 'bg-red-400' : 'bg-amber-400')}`} />
+                        {rel.status === 'active' ? 'ONLINE' : (rel.status === 'error' ? 'ERROR' : 'PENDING')}
+                      </div>
+                      {rel.shared && (
+                        <div className="px-3 py-1 rounded-full text-[9px] font-bold tracking-wider bg-purple-500/20 text-purple-300 border border-purple-500/30">SHARED</div>
+                      )}
+                    </div>
+                  </div>
+
+                  {rel.status === 'active' ? (
+                    <Link to={`/pet/${rel.id}`}>
+                      <motion.button 
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        className="w-full bg-gradient-to-r from-slate-800 to-slate-700 hover:from-emerald-500 hover:to-emerald-400 hover:text-slate-900 py-4 rounded-2xl font-bold transition-all flex items-center justify-center gap-2 shadow-lg hover:shadow-xl hover:shadow-emerald-500/30 border border-slate-700/50 hover:border-emerald-500"
+                      >
+                        Enter Room <ArrowRight className="group-hover:translate-x-1 transition-transform" size={18} />
+                      </motion.button>
+                    </Link>
+                  ) : (
+                    <motion.button 
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => acceptRequest(rel.id)} 
+                      className="w-full bg-slate-800/50 text-slate-400 hover:text-white hover:bg-slate-700 py-4 rounded-2xl font-bold border-2 border-dashed border-slate-700 hover:border-emerald-500/50 transition-all"
+                    >
+                      Accept Request
+                    </motion.button>
+                  )}
+                </div>
+              </motion.div>
+            ))
+          )}
+        </motion.div>
       </div>
 
       {/* "New Pet" Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-slate-900 p-8 rounded-3xl w-full max-w-sm border border-slate-800 shadow-2xl">
-            <h3 className="text-xl font-bold mb-6">Create Connection</h3>
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50"
+          onClick={() => setModalOpen(false)}
+        >
+          <motion.div 
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.9, opacity: 0 }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            onClick={(e) => e.stopPropagation()}
+            className="bg-gradient-to-br from-slate-900 to-slate-800 p-8 rounded-3xl w-full max-w-md border border-slate-700/50 shadow-2xl"
+          >
+            <div className="flex items-center gap-3 mb-8">
+              <div className="p-3 bg-emerald-500/20 rounded-2xl">
+                <Sparkles className="text-emerald-400" size={24} />
+              </div>
+              <h3 className="text-2xl font-bold bg-gradient-to-r from-white to-emerald-200 bg-clip-text text-transparent">Create Connection</h3>
+            </div>
             
-            <label className="text-xs text-slate-500 uppercase font-bold ml-1">Partner Name</label>
+            <label className="text-xs text-emerald-400 uppercase font-bold ml-1 tracking-wider">Partner Name</label>
             <input 
-              className="w-full bg-slate-950 p-4 rounded-xl mb-4 mt-1 border border-slate-800 focus:border-emerald-500 outline-none text-white transition-colors" 
+              className="w-full bg-slate-950/50 p-4 rounded-xl mb-5 mt-2 border border-slate-700/50 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none text-white transition-all placeholder:text-slate-600" 
               placeholder="e.g. Alice" 
               value={newPartner} 
               onChange={(e) => setNewPartner(e.target.value)} 
             />
             
-            <label className="text-xs text-slate-500 uppercase font-bold ml-1">Partner Username</label>
+            <label className="text-xs text-emerald-400 uppercase font-bold ml-1 tracking-wider">Partner Username</label>
             <input 
-              className="w-full bg-slate-950 p-4 rounded-xl mb-4 mt-1 border border-slate-800 focus:border-emerald-500 outline-none text-white transition-colors" 
-              placeholder="partner_username" 
+              className="w-full bg-slate-950/50 p-4 rounded-xl mb-2 mt-2 border border-slate-700/50 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none text-white transition-all placeholder:text-slate-600" 
+              placeholder="partner_username"
               value={newPartnerUsername} 
               onChange={(e) => {
                 const v = e.target.value;
@@ -184,35 +289,65 @@ export default function Dashboard() {
                 <div className="text-xs text-slate-400">(dev-only) create a placeholder account</div>
               </div>
             )}
-            {usernameValid === null && <div className="text-xs text-slate-400 mt-2">Checking…</div>}
+            {usernameValid === null && <div className="text-xs text-slate-400 mt-2 bg-slate-800/30 px-2 py-1 rounded-md inline-block">Checking…</div>}
 
-            <label className="text-xs text-slate-500 uppercase font-bold ml-1">Pet Name</label>
+            <label className="text-xs text-emerald-400 uppercase font-bold ml-1 tracking-wider mt-4 block">Pet Name</label>
             <input 
-              className="w-full bg-slate-950 p-4 rounded-xl mb-8 mt-1 border border-slate-800 focus:border-emerald-500 outline-none text-white transition-colors" 
+              className="w-full bg-slate-950/50 p-4 rounded-xl mb-8 mt-2 border border-slate-700/50 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none text-white transition-all placeholder:text-slate-600" 
               placeholder="e.g. Moodachu" 
               value={newPetName} 
               onChange={(e) => setNewPetName(e.target.value)} 
             />
             
             <div className="flex gap-4">
-              <button onClick={() => setModalOpen(false)} className="flex-1 py-3 text-slate-500 hover:text-white transition-colors">Cancel</button>
-              <button disabled={!newPartner || !newPartnerUsername || !newPetName || !usernameValid} onClick={handleCreate} className={`flex-1 bg-emerald-500 text-slate-900 font-bold py-3 rounded-xl hover:scale-105 transition-transform ${(!newPartner || !newPartnerUsername || !newPetName || !usernameValid) ? 'opacity-60 cursor-not-allowed' : ''}`}>Create</button>
+              <motion.button 
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => setModalOpen(false)} 
+                className="flex-1 py-3 text-slate-400 hover:text-white transition-colors bg-slate-800/30 rounded-xl font-medium hover:bg-slate-800/50"
+              >
+                Cancel
+              </motion.button>
+              <motion.button 
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                disabled={!newPartner || !newPartnerUsername || !newPetName || !usernameValid} 
+                onClick={handleCreate} 
+                className={`flex-1 bg-gradient-to-r from-emerald-600 to-emerald-500 text-white font-bold py-3 rounded-xl shadow-lg transition-all ${(!newPartner || !newPartnerUsername || !newPetName || !usernameValid) ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-emerald-500/50'}`}
+              >
+                Create
+              </motion.button>
             </div>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       )}
       {/* Email preview modal (Ethereal preview link) */}
       {lastEmailPreview && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
-          <div className="bg-slate-900 p-6 rounded-2xl w-full max-w-md border border-slate-800">
-            <h3 className="text-lg font-bold mb-3">Email Preview</h3>
-            <p className="text-sm text-slate-300 mb-4">This is an Ethereal preview of the email that was sent (development only).</p>
-            <a className="text-emerald-400 break-words" href={lastEmailPreview} target="_blank" rel="noreferrer">Open Preview</a>
-            <div className="flex justify-end mt-6">
-              <button onClick={() => clearLastEmailPreview()} className="px-4 py-2 bg-emerald-500 rounded-md text-black font-bold">Close</button>
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+        >
+          <motion.div 
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="bg-gradient-to-br from-slate-900 to-slate-800 p-8 rounded-3xl w-full max-w-md border border-slate-700/50 shadow-2xl"
+          >
+            <h3 className="text-xl font-bold mb-3 bg-gradient-to-r from-white to-emerald-200 bg-clip-text text-transparent">Email Preview</h3>
+            <p className="text-sm text-slate-400 mb-6">This is an Ethereal preview of the email that was sent (development only).</p>
+            <a className="text-emerald-400 hover:text-emerald-300 break-words underline decoration-emerald-500/30 hover:decoration-emerald-500 transition-colors" href={lastEmailPreview} target="_blank" rel="noreferrer">Open Preview →</a>
+            <div className="flex justify-end mt-8">
+              <motion.button 
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => clearLastEmailPreview()} 
+                className="px-6 py-3 bg-gradient-to-r from-emerald-600 to-emerald-500 rounded-xl text-white font-bold shadow-lg hover:shadow-emerald-500/50 transition-all"
+              >
+                Close
+              </motion.button>
             </div>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       )}
     </div>
   );
