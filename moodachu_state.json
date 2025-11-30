@@ -1,0 +1,104 @@
+{
+  "pairs": {
+    "1": {
+      "id": "1",
+      "petState": 1,
+      "lastUpdate": 1764464742,
+      "updateCount": 1
+    },
+    "2": {
+      "id": "2",
+      "petState": 1,
+      "lastUpdate": 1764461627,
+      "updateCount": 12
+    },
+    "couple1": {
+      "id": "couple1",
+      "petState": 1,
+      "lastUpdate": 1764459847,
+      "updateCount": 2
+    },
+    "0l564s2": {
+      "id": "0l564s2",
+      "petState": 3,
+      "lastUpdate": 1764476504,
+      "updateCount": 7,
+      "petName": "pannu",
+      "participants": [
+        "henisha",
+        "yashas"
+      ]
+    },
+    "yjfbwwq": {
+      "id": "yjfbwwq",
+      "petState": 0,
+      "lastUpdate": 1764475818,
+      "updateCount": 0,
+      "petName": "pannu",
+      "participants": [
+        "henisha",
+        "yashas"
+      ]
+    }
+  },
+  "invitations": {
+    "rp87ou0": {
+      "id": "rp87ou0",
+      "toUsername": "yash",
+      "fromUid": "2CYz9jDkULYbQz2Yftyl1atMoHP2",
+      "fromUsername": "henisha",
+      "fromDisplayName": "henisha",
+      "petName": "pannu",
+      "partnerName": "yashas",
+      "accepted": false,
+      "createdAt": 1764471925
+    },
+    "oatgmig": {
+      "id": "oatgmig",
+      "toUsername": "yash",
+      "fromUid": "2CYz9jDkULYbQz2Yftyl1atMoHP2",
+      "fromUsername": "henisha",
+      "fromDisplayName": "henisha",
+      "petName": "pannu",
+      "partnerName": "yashas",
+      "accepted": false,
+      "createdAt": 1764471954
+    },
+    "4ojh9fo": {
+      "id": "4ojh9fo",
+      "toUsername": "yashas",
+      "fromUid": "2CYz9jDkULYbQz2Yftyl1atMoHP2",
+      "fromUsername": "henisha",
+      "fromDisplayName": "henisha",
+      "petName": "pannu",
+      "partnerName": "yashas",
+      "accepted": true,
+      "createdAt": 1764475798
+    }
+  },
+  "users": {
+    "gTEyPIpYBfUOHt0RruMSWr6R6im2": {
+      "uid": "gTEyPIpYBfUOHt0RruMSWr6R6im2",
+      "username": "yashas",
+      "displayName": "yashas",
+      "email": "yashasy7@gmail.com"
+    },
+    "2CYz9jDkULYbQz2Yftyl1atMoHP2": {
+      "uid": "2CYz9jDkULYbQz2Yftyl1atMoHP2",
+      "username": "henisha",
+      "displayName": "henisha",
+      "email": "ha.shpurle@gmail.com"
+    },
+    "IiRH98mCIEUX8sFvvO7NAOf0dEy2": {
+      "uid": "IiRH98mCIEUX8sFvvO7NAOf0dEy2",
+      "username": "sakshamgiri",
+      "displayName": "Saksham Giri",
+      "email": "sakshamgiri500@gmail.com"
+    }
+  },
+  "usernames": {
+    "yashas": "gTEyPIpYBfUOHt0RruMSWr6R6im2",
+    "henisha": "2CYz9jDkULYbQz2Yftyl1atMoHP2",
+    "sakshamgiri": "IiRH98mCIEUX8sFvvO7NAOf0dEy2"
+  }
+}

@@ -1,0 +1,164 @@
+// contract/src/moodachu_cdc.compact
+// Moodachu CDC -- Compact format (Midnight)
+// Purpose: require on-chain verification of Groth16 proofs for sensitive updates.
+//
+// NOTE: This file assumes the Midnight Compact compiler provides:
+//  - a built-in `verify_groth16(vk_bytes, proof_bytes, public_signals_array) -> bool`
+//    (If your compiler uses a different function name or signature, replace accordingly.)
+//  - `bytes` and `uint256` types and mapping-like storage.
+//  - `emit` for events and `require(condition, "msg")` for reverts.
+//
+// Storage layout is minimal and explicit so it's easy to port to the exact Compact syntax.
+
+contract MoodachuCDC {
+  // --- Storage ---
+
+  // Verification keys stored on-chain as raw JSON bytes (or serialized form expected by verifier).
+  // These keys should be placed by the deployer (constructor or admin setter).
+  bytes mood_update_vk;        // verification key for mood_update circuit (Groth16)
+  bytes capability_vk;         // verification key for capability circuit (Groth16)
+
+  // Mapping: coupleId -> Merkle root (uint256 for Poseidon-based root)
+  mapping(bytes32 => uint256) public moodRoots;
+
+  // Mapping of coupleId -> update count (for deterministic increment)
+  mapping(bytes32 => uint256) public updateCount;
+
+  // Admin / owner (deployer)
+  address public owner;
+
+  // Events
+  event CoupleRegistered(bytes32 indexed coupleId, address indexed partnerA, address indexed partnerB, uint256 root);
+  event MoodUpdated(bytes32 indexed coupleId, uint256 newRoot, uint256 timestamp, uint256 updateIdx, address indexed updater, bytes txMeta);
+
+  // --- Constructor ---
+  // Option 1: pass VKs as constructor args (recommended)
+  constructor(bytes _mood_update_vk, bytes _capability_vk) {
+    owner = msg.sender;
+    mood_update_vk = _mood_update_vk;
+    capability_vk = _capability_vk;
+  }
+
+  // --- Admin functions ---
+  // Only owner can update VKs (in case you need to rotate keys)
+  function set_mood_update_vk(bytes _vk) public {
+    require(msg.sender == owner, "only owner");
+    mood_update_vk = _vk;
+  }
+
+  function set_capability_vk(bytes _vk) public {
+    require(msg.sender == owner, "only owner");
+    capability_vk = _vk;
+  }
+
+  // --- Register couple (no zk) ---
+  // Simple register function to create an initial root for a couple
+  function register_couple(bytes32 coupleId, address partnerA, address partnerB, uint256 root) public {
+    require(moodRoots[coupleId] == 0, "already registered");
+    moodRoots[coupleId] = root;
+    updateCount[coupleId] = 0;
+    emit CoupleRegistered(coupleId, partnerA, partnerB, root);
+  }
+
+  // --- ZK-protected update_mood ---
+  // This method accepts a proof object and public signals and verifies them on-chain.
+  //
+  // Expected argument layout:
+  // - proof: bytes (serialized Groth16 proof object — however your verifier expects it)
+  // - publicSignals: uint256[] (array of public signals that the circuit declares)
+  //
+  // The mood_update circuit MUST have the public outputs in this order (example):
+  //   public old_root, public new_root, public timestamp, public coupleIdHash, public update_count_expected
+  //
+  // The contract will:
+  //  1) verify the proof using the stored mood_update_vk
+  //  2) check that the publicSignals match the current chain state (old_root == current stored root)
+  //  3) ensure timestamp is greater than last update time or some monotonic check
+  //  4) ensure update_count matches stored increment (prevent replays)
+  //  5) if all checks pass, write new root and increment updateCount
+
+  function update_mood(bytes proof, uint256[] publicSignals, bytes txMeta) public {
+    // Basic sanity checks
+    require(mood_update_vk.length > 0, "mood vk not set");
+    require(publicSignals.length >= 4, "publicSignals too short");
+
+    // Interpret publicSignals (adjust indices to match your circuit)
+    uint256 old_root = publicSignals[0];
+    uint256 new_root = publicSignals[1];
+    uint256 timestamp = publicSignals[2];
+    // We assume the circuit publishes a couple identifier commitment as a field
+    uint256 coupleIdScalar = publicSignals[3];
+    // optionally: publicSignals[4] might be expected update_count in the circuit
+    uint256 expected_update_count = 0;
+    if (publicSignals.length > 4) {
+      expected_update_count = publicSignals[4];
+    }
+
+    // Reconstruct coupleId bytes32 from the scalar (if your on-chain store uses bytes32 keys)
+    // Here we assume the circuit supplied a numeric hash which fits into uint256; cast to bytes32
+    bytes32 coupleId = bytes32(uint256(coupleIdScalar));
+
+    // Verify that the on-chain stored old root matches the proof's old_root
+    uint256 currentRoot = moodRoots[coupleId];
+    require(currentRoot == old_root, "old root mismatch");
+
+    // Check update count matches expected (prevents replay)
+    uint256 currentCount = updateCount[coupleId];
+    require(currentCount == expected_update_count, "update count mismatch");
+
+    // Optional: check timestamp monotonicity (your contract can store last timestamp if needed)
+    // For simplicity we require timestamp > 0 (the circuit can enforce stronger checks)
+    require(timestamp > 0, "invalid timestamp");
+
+    // --- On-chain verification ---
+    // Call the verifier (assumed built-in). The verifier returns true/false.
+    // verify_groth16 takes: (vk_bytes, proof_bytes, public_signals_array) -> bool
+    bool ok = verify_groth16(mood_update_vk, proof, publicSignals);
+    require(ok, "zk verification failed");
+
+    // All checks passed: commit new root and increment update count
+    moodRoots[coupleId] = new_root;
+    updateCount[coupleId] = currentCount + 1;
+
+    // Emit event with optional metadata bytes (txMeta) for off-chain use
+    emit MoodUpdated(coupleId, new_root, timestamp, updateCount[coupleId], msg.sender, txMeta);
+  }
+
+  // --- Capability-protected action example ---
+  // Example function that requires a capability proof on-chain
+  function privileged_action(bytes proof, uint256[] publicSignals, bytes txMeta) public {
+    // Basic checks
+    require(capability_vk.length > 0, "capability vk not set");
+    // Contract-specific publicSignals interpretation (for example: [capability_pub, purpose_code, now_ts, expiry_ts] )
+    require(publicSignals.length >= 3, "capability publicSignals too short");
+
+    // Verify capability proof
+    bool ok = verify_groth16(capability_vk, proof, publicSignals);
+    require(ok, "capability proof invalid");
+
+    // Example check: ensure grant not expired (assuming publicSignals[2] is expiry_ts or similar)
+    // Adjust indices to match your circuit's outputs.
+    uint256 now_ts = publicSignals[2];
+    // (The circuit should ensure now_ts < expiry inside the ZK proof; contract can still sanity-check)
+    require(now_ts > 0, "invalid timestamp in capability proof");
+
+    // Perform privileged action (application-specific)
+    // ...
+    emit MoodUpdated(bytes32(0), 0, now_ts, 0, msg.sender, txMeta); // reuse event shape as notification
+  }
+
+  // --- Verifier stub ---
+  // NOTE: The following is a *placeholder stub* to illustrate expected verifier signature.
+  // On Midnight this is normally provided as a built-in precompile or intrinsic.
+  // Replace `verify_groth16` with the actual verifier call your compiler/runtime provides.
+  //
+  // Example stub below *throws* if called — you must replace it with the runtime-provided verifier.
+  function verify_groth16(bytes vk_bytes, bytes proof_bytes, uint256[] publicSignals) internal returns (bool) {
+    // Replace this body with the actual call to the runtime verifier.
+    // For example, the real runtime may provide:
+    //   return ZK.verifyGroth16(vk_bytes, proof_bytes, publicSignals);
+    //
+    // Temporary safety: revert to signal missing implementation.
+    revert("verify_groth16 not implemented: replace with runtime verifier call");
+  }
+}

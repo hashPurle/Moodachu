@@ -1,0 +1,27 @@
+{
+  "loading_states": [
+    "Encrypting feelings...",
+    "Consulting the emotional oracle...",
+    "Zero-knowledge proof in progress...",
+    "Hiding your secrets mathematically..."
+  ],
+  "error_messages": {
+    "generic": "Someone is emotionally unavailable.",
+    "network": "Relationship connection timed out.",
+    "invalid_input": "That emotion is too complex for our circuit."
+  },
+  "success_messages": {
+    "storm": "Crisis averted. Privacy preserved.",
+    "dance": "Vibe check passed!",
+    "sleepy": "Support signal sent.",
+    "grow": "Relationship leveling up!"
+  },
+  "easter_eggs": {
+    "hydra_toggle": "Engage Hydra Speed",
+    "pairing_screen": "Let's get emotionally decentralized."
+  },
+  "interaction_text": {
+    "stroke_hint": "Stroke pet to send affection",
+    "feed_hint": "Feed cookie to boost mood"
+  }
+}

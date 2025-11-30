@@ -1,0 +1,160 @@
+// Moodachu - Zero-Knowledge Emotional Mediator
+// Midnight Compact Smart Contract (patched for real Groth16 verification)
+
+// --- Data Structures ---
+
+// Represents the state of a couple's shared pet.
+struct PairState {
+    id: bytes32,
+    petState: u8,
+    lastUpdate: u64,
+    updateCount: u32,
+}
+
+// Represents a Groth16 ZK-SNARK proof.
+// Field is Midnight's native field element type.
+struct Groth16Proof {
+    pi_a: [Field; 2],
+    pi_b: [[Field; 2]; 2],
+    pi_c: [Field; 2],
+}
+
+// --- Events ---
+
+event PetStateUpdated {
+    pairId: bytes32,
+    newState: u8,
+    timestamp: u64,
+}
+
+event PairCreated {
+    pairId: bytes32,
+    timestamp: u64,
+}
+
+// --- Contract ---
+
+contract Moodachu {
+    // --- Storage ---
+    pair_states: Map<bytes32, PairState>,
+
+    // Raw verification key JSON bytes (from snarkjs verification_key.json).
+    verification_key: bytes,
+
+    // Number of IC entries in the VK (IC.length). Useful to validate public inputs count.
+    vk_ic_length: u32,
+
+    // --- Constructor ---
+    // Accept both raw vk bytes and its ic_length (IC.length).
+    constructor(vk_bytes: bytes, ic_length: u32) {
+        // store raw vk bytes (exact file content)
+        self.verification_key = vk_bytes;
+        self.vk_ic_length = ic_length;
+    }
+
+    // --- Public Functions ---
+
+    // Submits a ZK proof to update a pair's emotional state.
+    public function submitProof(pairId: bytes32, claimedState: u8, proof: Groth16Proof) -> bool {
+        // 1. Input Validation: Ensure claimedState is within the valid range (0-4).
+        require(claimedState <= 4, "Invalid state: claimedState must be between 0 and 4.");
+
+        // 2. Build public_inputs array.
+        // For your circuit nPublic = 1, so public_inputs should be length 1 containing claimedState.
+        // Validate against stored vk_ic_length: IC.length == nPublic + 1
+        let expected_ic_len = self.vk_ic_length; // e.g., 2
+        let expected_nPublic = expected_ic_len - 1;
+        require(expected_nPublic as u32 == 1u32, "VK indicates different number of public inputs than expected.");
+
+        // Assemble public inputs (Field elements). Convert u8 -> Field.
+        let public_inputs: [Field; 1] = [ Field::from(claimedState) ];
+
+        // 3. Verify the proof using Midnight native verifier.
+        // Serialize the proof to bytes in the expected order (pi_a.x, pi_a.y, pi_b[0][0], pi_b[0][1], pi_b[1][0], ... , pi_c.x, pi_c.y)
+        let proof_bytes = self.serialize_proof_to_bytes(proof);
+
+        // Call Midnight's native verifier. This is the canonical call pattern used on Midnight:
+        // midnight::crypto::verify_groth16(vk_bytes: bytes, proof_bytes: bytes, public_inputs: [Field]) -> bool
+        // If your runtime uses a slightly different name/signature, replace the call below accordingly.
+        let is_valid: bool = midnight::crypto::verify_groth16(self.verification_key, proof_bytes, public_inputs);
+
+        require(is_valid, "Proof verification failed.");
+
+        // 4. State Update
+        let current_timestamp = now();
+        let current_count = if self.pair_states.contains_key(pairId) {
+            self.pair_states.get(pairId).updateCount
+        } else {
+            emit PairCreated { pairId: pairId, timestamp: current_timestamp };
+            0
+        };
+
+        let new_state = PairState {
+            id: pairId,
+            petState: claimedState,
+            lastUpdate: current_timestamp,
+            updateCount: current_count + 1,
+        };
+
+        self.pair_states.insert(pairId, new_state);
+
+        // 5. Emit Event
+        emit PetStateUpdated {
+            pairId: pairId,
+            newState: claimedState,
+            timestamp: current_timestamp,
+        };
+
+        // 6. Return Success
+        return true;
+    }
+
+    // --- View Functions ---
+    public view function getPetState(pairId: bytes32) -> u8 {
+        if self.pair_states.contains_key(pairId) {
+            return self.pair_states.get(pairId).petState;
+        }
+        return 0; // Default to NEUTRAL state
+    }
+
+    public view function getPairInfo(pairId: bytes32) -> Option<PairState> {
+        return self.pair_states.get(pairId);
+    }
+
+    // --- Internal Functions ---
+
+    // Serializes the Groth16Proof into a byte array in canonical order.
+    // The exact byte layout should match the expectation of midnight::crypto::verify_groth16.
+    // Typical order: pi_a.x, pi_a.y, pi_b[0][0], pi_b[0][1], pi_b[1][0], pi_b[1][1], pi_c.x, pi_c.y
+    // Each Field is serialized to its canonical 32-byte big-endian representation.
+    private function serialize_proof_to_bytes(proof: Groth16Proof) -> bytes {
+        // Create a mutable byte buffer and append fields
+        let mut buf: Vec<u8> = Vec::new();
+
+        // Helper closure: serialize Field -> 32 bytes BE
+        fn append_field(buf_ref: &mut Vec<u8>, f: Field) {
+            // Assuming Field has a method to serialize to big-endian bytes.
+            // If Midnight's Field uses to_bytes() or to_le_bytes(), adjust accordingly.
+            let b: [u8; 32] = f.to_be_bytes(); // <- assume this exists; else use to_bytes() and pad to 32 bytes.
+            for i in 0..32 {
+                buf_ref.push(b[i]);
+            }
+        }
+
+        // pi_a
+        append_field(&mut buf, proof.pi_a[0]);
+        append_field(&mut buf, proof.pi_a[1]);
+
+        // pi_b (2x2)
+        append_field(&mut buf, proof.pi_b[0][0]);
+        append_field(&mut buf, proof.pi_b[0][1]);
+        append_field(&mut buf, proof.pi_b[1][0]);
+        append_field(&mut buf, proof.pi_b[1][1]);
+
+        // pi_c
+        append_field(&mut buf, proof.pi_c[0]);
+        append_field(&mut buf, proof.pi_c[1]);
+
+        return bytes::from(buf);
+    }
+}
