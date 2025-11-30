@@ -173,9 +173,10 @@ export default function PetRoom() {
         <div className="text-center">
           <h1 className="font-bold text-xl">{relationship.petName}</h1>
           <p className="text-[10px] text-emerald-500 font-mono">Secured by Midnight</p>
-          <p className="text-[11px] mt-1">
-            Mood: <span className="font-bold">{PET_STATE_LABELS[relationship.petState]}</span>
-          </p>
+            {(relationship.partnerEmail || relationship.partnerUsername) && <p className="text-[11px] text-slate-400 mt-1">Partner: <span className="font-bold text-white">{relationship.partnerName}</span> &middot; <span className="text-slate-300 text-xs">{relationship.partnerUsername || relationship.partnerEmail}</span></p>}
+            <p className="text-[11px] mt-1">
+              Mood: <span className="font-bold">{PET_STATE_LABELS[relationship.petState]}</span>
+            </p>
         </div>
 
         <div className="w-10" />
@@ -189,7 +190,9 @@ export default function PetRoom() {
           gl={{ antialias: true, alpha: true }}
           onCreated={({ gl }) => gl.setClearColor("#000000", 0)}
         >
-          <ambientLight intensity={1} />
+          <ambientLight intensity={1.5} />
+          <directionalLight position={[5, 5, 5]} intensity={1} />
+          <pointLight position={[-5, 5, 5]} intensity={0.5} />
           <Environment preset="city" background={false} />
 
           {/* Storm fog */}
@@ -204,7 +207,6 @@ export default function PetRoom() {
           ) : (
             <CodeCat petState={relationship.petState} triggerAction={currentAction} />
           )}
-
           <OrbitControls makeDefault enableZoom={true} />
         </Canvas>
       </div>

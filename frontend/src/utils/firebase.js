@@ -8,6 +8,7 @@ import {
   signInWithEmailAndPassword,
   updateProfile
 } from "firebase/auth";
+import { setPersistence, browserLocalPersistence } from 'firebase/auth';
 
 // --- PASTE YOUR CONFIG FROM FIREBASE CONSOLE BELOW ---
 // (Make sure to keep your actual keys here!)
@@ -36,3 +37,9 @@ export {
   signInWithEmailAndPassword,
   updateProfile 
 };
+
+// Ensure local persistence for the auth session
+setPersistence(auth, browserLocalPersistence).catch((err) => {
+  // It's okay to ignore but log for debug
+  console.warn('[firebase] setPersistence failed', err.message);
+});

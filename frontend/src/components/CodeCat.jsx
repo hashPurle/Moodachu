@@ -268,11 +268,11 @@ export default function CodeCat({ petState = 0, triggerAction, ...props }) {
 
   return (
     // ✅ No Position Offset here, let Stage handle it
-    <group ref={group} position={[0,0,0]} visible={true} {...props} dispose={null}>
+    <group ref={group} position={[0,0,0]} scale={[1.5, 1.5, 1.5]} visible={true} {...props} dispose={null}>
       {/* DEBUG: a small mesh at origin to ensure the scene and camera render things */}
       <mesh position={[0, 0.4, 0]}>
-        <sphereGeometry args={[0.08, 8, 8]} />
-        <meshStandardMaterial color="magenta" metalness={0.1} roughness={0.2} emissive={'magenta'} emissiveIntensity={3} />
+        <sphereGeometry args={[0.3, 16, 16]} />
+        <meshStandardMaterial color="magenta" metalness={0.1} roughness={0.2} emissive={'magenta'} emissiveIntensity={5} />
       </mesh>
       {/* camera-facing cube removed (debug) */}
       
@@ -287,7 +287,7 @@ export default function CodeCat({ petState = 0, triggerAction, ...props }) {
               <meshStandardMaterial {...materialProps} />
           </RoundedBox>
           {[[-0.3, -0.2, 0.5], [0.3, -0.2, 0.5], [-0.3, -0.2, -0.5], [0.3, -0.2, -0.5]].map((pos, i) => (
-              <RoundedBox key={i} args={[0.25, 0.6, 0.25]} radius={0.05} smoothness={4} position={pos}>
+              <RoundedBox key={i} args={[0.25, 0.6, 0.25]} radius={0.05} smoothness={4} position={pos} frustumCulled={false}>
                   <meshStandardMaterial {...materialProps} />
               </RoundedBox>
           ))}

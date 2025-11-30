@@ -10,14 +10,14 @@ export default function Login() {
 
   // Local State
   const [isSignUp, setIsSignUp] = useState(false);
-  const [formData, setFormData] = useState({ name: "", email: "", password: "" });
+  const [formData, setFormData] = useState({ name: "", username: "", email: "", password: "" });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     let success = false;
     
     if (isSignUp) {
-      success = await signupWithEmail(formData.email, formData.password, formData.name);
+      success = await signupWithEmail(formData.email, formData.password, formData.name, formData.username);
     } else {
       success = await loginWithEmail(formData.email, formData.password);
     }
@@ -142,6 +142,30 @@ export default function Login() {
               {isLoggingIn ? <Loader2 className="animate-spin" /> : (isSignUp ? "Create Account" : "Sign In")}
               {!isLoggingIn && <ArrowRight size={18} />}
             </button>
+
+            {/* Username Input (Only for Sign Up) */}
+            <AnimatePresence>
+              {isSignUp && (
+                <motion.div 
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="overflow-hidden"
+                >
+                  <div className="relative group">
+                    <User className="absolute left-3 top-3.5 text-slate-500 group-focus-within:text-emerald-400 transition-colors" size={18} />
+                    <input 
+                      type="text" 
+                      placeholder="Username (unique)"
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 pl-10 pr-4 text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500 transition-colors"
+                      value={formData.username}
+                      onChange={(e) => setFormData({...formData, username: e.target.value})}
+                      required={isSignUp}
+                    />
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </form>
 
           {/* Divider */}
